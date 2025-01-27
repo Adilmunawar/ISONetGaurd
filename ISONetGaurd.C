@@ -25,7 +25,7 @@
 #define DDOS_THRESHOLD 1000 // Max packets from an IP in 1 second
 #define MAX_PACKETS_PER_IP 1000
 
-// Function Prototypes
+// Function Prototype
 void log_message(const char *message);
 int load_config(const char *file);
 void detect_interfaces();
@@ -56,7 +56,7 @@ typedef struct {
 
 firewall_config config;
 
-// Simple structure to track packet counts per IP
+// Simple structure to tracks packet counts per IP
 typedef struct {
     char ip[INET_ADDRSTRLEN];
     int packet_count;
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
     // Detect network interfaces
     detect_interfaces();
 
-    // Apply traffic shaping rules
+    // Apply traffic shaping rule
     apply_traffic_shaping();
 
     // Start packet filtering (i.e., run firewall)
