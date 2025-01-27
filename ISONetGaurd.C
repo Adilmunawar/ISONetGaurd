@@ -17,6 +17,8 @@
 #define LOG_FILE "/var/log/isowall.log"
 #define MAX_BLOCKED_IPS 100
 #define MAX_ALLOWED_IPS 100
+#define MAX_BLOCKED_MACS 100
+#define MAX_PACKET_LOGS 1000
 
 // Function Prototypes
 void log_message(const char *message);
@@ -29,6 +31,9 @@ int is_ip_blocked(const struct in_addr *ip);
 int is_mac_blocked(const u_char *mac);
 void handle_web_interface();
 void apply_traffic_shaping();
+void log_packet(const u_char *packet, const struct pcap_pkthdr *header);
+void dynamic_ip_block(const struct in_addr *ip);
+void alert_admin(const char *message);
 
 // Configuration and rule handling
 typedef struct {
@@ -39,6 +44,7 @@ typedef struct {
     char *external_interface;
     char *block_list[MAX_BLOCKED_IPS];
     char *allow_list[MAX_ALLOWED_IPS];
+    char *blocked_mac_list[MAX_BLOCKED_MACS];
 } firewall_config;
 
 firewall_config config;
@@ -121,6 +127,7 @@ int load_config(const char *file) {
     // Block/Allow lists (hardcoded for demo)
     config.block_list[0] = "10.0.0.0/8";
     config.allow_list[0] = "0.0.0.0/0";
+    config.blocked_mac_list[0] = "00:1A:2B:3C:4D:5E";
 
     fclose(config_file);
     return 0;
@@ -162,6 +169,9 @@ void start_packet_filtering() {
 
     // Process packets
     while ((packet = pcap_next(handle, &header)) != NULL) {
+        // Log the packet for monitoring
+        log_packet(packet, &header);
+        
         // Filter packets based on configuration
         if (should_allow_packet(packet)) {
             printf("Allowed packet: %u bytes\n", header.len);
@@ -214,8 +224,27 @@ void apply_traffic_shaping() {
     system(command);
 }
 
-// Simple web interface handler (Placeholder)
-void handle_web_interface() {
-    printf("Web interface is not implemented in this C version.\n");
+// Log packet information
+void log_packet(const u_char *packet, const struct pcap_pkthdr *header) {
+    // Log the source and destination IPs and the packet size
+    struct ip *ip_header = (struct ip *)(packet + 14);  // 14 bytes Ethernet header
+    char log_message_str[512];
+    snprintf(log_message_str, sizeof(log_message_str), 
+             "Packet logged: Src IP: %s, Dst IP: %s, Size: %u bytes",
+             inet_ntoa(ip_header->ip_src),
+             inet_ntoa(ip_header->ip_dst),
+             header->len);
+    log_message(log_message_str);
 }
 
+// Dynamically block an IP (simplified)
+void dynamic_ip_block(const struct in_addr *ip) {
+    printf("Blocking IP: %s\n", inet_ntoa(*ip));
+    // Here you could add it to the block list dynamically
+}
+
+// Alert the admin (e.g., via email or other means)
+void alert_admin(const char *message) {
+    // Placeholder for sending alerts via email/SMS
+    printf("ALERT: %s\n", message);
+}
