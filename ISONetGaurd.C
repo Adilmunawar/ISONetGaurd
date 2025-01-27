@@ -21,6 +21,9 @@
 #define MAX_BLOCKED_MACS 100
 #define MAX_PACKET_LOGS 1000
 #define BLOCK_DURATION 60 // Time in seconds for temporary IP block
+#define MAX_TRACKED_IPS 1000
+#define DDOS_THRESHOLD 1000 // Max packets from an IP in 1 second
+#define MAX_PACKETS_PER_IP 1000
 
 // Function Prototypes
 void log_message(const char *message);
@@ -52,6 +55,15 @@ typedef struct {
 } firewall_config;
 
 firewall_config config;
+
+// Simple structure to track packet counts per IP
+typedef struct {
+    char ip[INET_ADDRSTRLEN];
+    int packet_count;
+    time_t last_seen;
+} ip_tracker;
+
+ip_tracker tracked_ips[MAX_TRACKED_IPS];
 
 // Main function with command-line parsing and logic
 int main(int argc, char *argv[]) {
@@ -161,6 +173,10 @@ void start_packet_filtering() {
         // Log the packet for monitoring
         log_packet(packet, &header);
         
+        // Track IPs for anomaly detection
+        struct ip *ip_header = (struct ip *)(packet + 14);  // 14 bytes Ethernet header
+        track_ip(&ip_header->ip_src);
+
         // Filter packets based on configuration
         if (should_allow_packet(packet)) {
             printf("Allowed packet: %u bytes\n", header.len);
@@ -175,13 +191,58 @@ void start_packet_filtering() {
 // Should the packet be allowed or dropped?
 int should_allow_packet(const u_char *packet) {
     struct ip *ip_header = (struct ip *)(packet + 14);  // 14 bytes Ethernet header
+
+    // Check for TCP packets
     if (ip_header->ip_p == IPPROTO_TCP) {
+        if (is_ip_blocked(&ip_header->ip_src)) {
+            return 0;  // Block IP
+        }
+    }
+    // Check for UDP packets
+    else if (ip_header->ip_p == IPPROTO_UDP) {
+        // Implement UDP specific filtering (e.g., block certain ports)
+        if (is_ip_blocked(&ip_header->ip_src)) {
+            return 0;  // Block IP
+        }
+    }
+    // Check for ICMP packets (ping requests)
+    else if (ip_header->ip_p == IPPROTO_ICMP) {
         if (is_ip_blocked(&ip_header->ip_src)) {
             return 0;  // Block IP
         }
     }
 
     return 1;  // Allow packet
+}
+
+// Track IP traffic for anomaly detection (simple rate-limiting logic)
+void track_ip(const struct in_addr *ip) {
+    char ip_str[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, ip, ip_str, INET_ADDRSTRLEN);
+
+    // Check if the IP is already tracked
+    for (int i = 0; i < MAX_TRACKED_IPS; i++) {
+        if (tracked_ips[i].packet_count > 0 && strcmp(tracked_ips[i].ip, ip_str) == 0) {
+            // Increase packet count
+            tracked_ips[i].packet_count++;
+            tracked_ips[i].last_seen = time(NULL);
+            if (tracked_ips[i].packet_count > DDOS_THRESHOLD) {  // Threshold for anomaly detection
+                printf("Anomalous traffic detected from IP: %s\n", ip_str);
+                dynamic_ip_block(ip);  // Block this IP
+            }
+            return;
+        }
+    }
+
+    // If not tracked, add it to the list
+    for (int i = 0; i < MAX_TRACKED_IPS; i++) {
+        if (tracked_ips[i].packet_count == 0) {
+            strcpy(tracked_ips[i].ip, ip_str);
+            tracked_ips[i].packet_count = 1;
+            tracked_ips[i].last_seen = time(NULL);
+            return;
+        }
+    }
 }
 
 // Check if an IP address is blocked
@@ -194,16 +255,6 @@ int is_ip_blocked(const struct in_addr *ip) {
         }
     }
     pthread_mutex_unlock(&config.block_list_mutex);
-    return 0;
-}
-
-// Check if a MAC address is blocked (simplified)
-int is_mac_blocked(const u_char *mac) {
-    for (int i = 0; i < MAX_BLOCKED_MACS; i++) {
-        if (config.blocked_mac_list[i] && memcmp(mac, config.blocked_mac_list[i], 6) == 0) {
-            return 1;  // Blocked
-        }
-    }
     return 0;
 }
 
@@ -258,4 +309,24 @@ void *dynamic_block_cleanup(void *arg) {
 void alert_admin(const char *message) {
     // Placeholder for sending alerts via email/SMS
     printf("ALERT: %s\n", message);
+}
+
+// Apply traffic shaping rules
+void apply_traffic_shaping() {
+    // Example: Implement rate-limiting for HTTP requests
+    if (is_http_traffic()) {
+        // Rate limit or block excessive HTTP requests
+        limit_http_requests();
+    }
+}
+
+// Check if the packet is HTTP traffic (for example, by looking at port 80)
+int is_http_traffic() {
+    // Check if the packet is HTTP (port 80)
+    return 1;
+}
+
+// Rate limit excessive HTTP requests
+void limit_http_requests() {
+    printf("Limiting excessive HTTP requests.\n");
 }
