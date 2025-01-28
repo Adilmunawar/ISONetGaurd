@@ -1,10 +1,3 @@
-# A workaround for color changes:
-To achieve a colored effect within GitHub's limitations, you could use emojis, bold, or italic text styles to help draw attention, but true color customization would need to be achieved in an external system (like a website with custom CSS) or by using tools like GitHub Pages with CSS support.
-
-Here’s how you can do some simple styling with bold, italic, emojis, etc., without using colors:
-
-# Example with emojis, bold, and italics:
-
 ```markdown
 🚀 ISONetGaurd
 
