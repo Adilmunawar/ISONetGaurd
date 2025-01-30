@@ -99,5 +99,4 @@ Run Isowall with the following command:
 ./isowall --conf /etc/isowall.conf
 ```
 
-This will load the configuration from `/etc/isowall.conf` and apply the firewall settings.
-```
+This will load the configuration from `/etc/isowall.conf` and apply the firewall settings
