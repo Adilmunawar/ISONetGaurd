@@ -1,0 +1,50 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 {
+    color: #0056b3;
+    margin: 20px 0;
+}
+
+#logs {
+    width: 80%;
+    max-width: 1000px;
+    background-color: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    max-height: 70vh;
+}
+
+.log-entry {
+    border-bottom: 1px solid #ddd;
+    padding: 10px 0;
+    font-size: 14px;
+    color: #555;
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-timestamp {
+    color: #999;
+    font-size: 12px;
+    margin-right: 10px;
+}
+
+@media (max-width: 600px) {
+    #logs {
+        width: 95%;
+    }
+}
